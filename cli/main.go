@@ -7,8 +7,8 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "certx",
-	Short: "Certx is the command line interface for using certexchange",
+	Use:   "simplepki",
+	Short: "simplepki is the command line interface for using simplepki",
 }
 
 func main() {

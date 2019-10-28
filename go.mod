@@ -1,4 +1,4 @@
-module gtohub.com/simplepki/client
+module github.com/simplepki/client
 
 go 1.13
 

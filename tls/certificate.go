@@ -1,61 +1,60 @@
 package tls
 
 import (
-	"bytes"
+	//"bytes"
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	//"io/ioutil"
 	"log"
-	"net/http"
+	//"net/http"
 	"strings"
 
 	"github.com/simplepki/core/keypair"
 )
 
 type Certificate struct {
-	Id      string
-	Path    string
-	Url     string
-	KeyPair keypair.KeyPair
+	Id           string
+	Intermediate string
+	Account string
+	KeyPair      keypair.KeyPair
 }
 
 type jsonCSR struct {
-	Id   string `json:"id"`
-	Path string `json:"path"`
-	CSR  string `json:"csr"`
+	InterName string `json:"intermediate_name"`
+	CertName  string `json:"cert_name"`
+	Account   string `json:"account"`
+	CSR       string `json:"csr"`
 }
 
 type jsonSignedCert struct{}
 
-func NewCert(path, id, url string) *Certificate {
+func NewCert(account, intermediate, id string) *Certificate {
 	//only in memory at the moment
 	kp := keypair.NewKeyPair("memory")
 
-	newCert := &Certificate{
-		Id:      id,
-		Path:    path,
-		Url:     url,
-		KeyPair: kp,
+	var intermediateString string
+	if strings.Contains(intermediate, "spiffe://") {
+		intermediateString = intermediate
+	} else {
+		intermediateString = fmt.Sprintf("spiffe://%s", intermediate)
 	}
 
-	newCert.sendCSR()
+	newCert := &Certificate{
+		Account: account,
+		Id:           id,
+		Intermediate: intermediateString,
+		KeyPair:      kp,
+	}
 
 	return newCert
 }
 
 func (c *Certificate) base64EncodedCSR() string {
-	var spiffePath string
-
-	if strings.Contains(c.Path, "spiffe://") {
-		spiffePath = c.Path
-	} else {
-		spiffePath = fmt.Sprintf("spiffe://%s", c.Path)
-	}
 
 	pkixName := pkix.Name{
-		CommonName: fmt.Sprintf("%s/%s", spiffePath, c.Id),
+		CommonName: fmt.Sprintf("%s/%s", c.Intermediate, c.Id),
 	}
 
 	csr := c.KeyPair.CreateCSR(pkixName, []string{})
@@ -66,10 +65,11 @@ func (c *Certificate) base64EncodedCSR() string {
 	return b64KP
 }
 
-func (c *Certificate) toJson() []byte {
+func (c *Certificate) Json() []byte {
 	jsonStruct := jsonCSR{
-		Id:   c.Id,
-		Path: c.Path,
+		CertName:   c.Id,
+		InterName: c.Intermediate,
+		Account: c.Account,
 		CSR:  c.base64EncodedCSR(),
 	}
 
@@ -81,7 +81,7 @@ func (c *Certificate) toJson() []byte {
 	return jsonBytes
 }
 
-func (c *Certificate) sendCSR() {
+/*func sendCSR(json ) {
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/csr", c.Url), bytes.NewBuffer(c.toJson()))
 	if err != nil {
 		log.Fatal(err.Error())
@@ -99,4 +99,4 @@ func (c *Certificate) sendCSR() {
 		log.Fatal(err.Error())
 	}
 	fmt.Printf("recieved response: %#v\n", string(body))
-}
+}*/
