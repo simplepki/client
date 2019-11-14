@@ -32,7 +32,6 @@ var newCertCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("new cert cmd")
 		cert := tls.NewCert(account, intermediate, id)
-		log.Printf("cert: %#v\n", cert)
 		log.Println("json:\n", string(cert.Json()))
 
 	},

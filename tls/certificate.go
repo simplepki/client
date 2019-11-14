@@ -21,8 +21,10 @@ type Certificate struct {
 	KeyPair      keypair.KeyPair
 }
 
+
 type jsonCSR struct {
-	InterName string `json:"intermediate_name"`
+	Token string `json:"token"`
+	InterChain string `json:"intermediate_chain"`
 	CertName  string `json:"cert_name"`
 	Account   string `json:"account"`
 	CSR       string `json:"csr"`
@@ -30,15 +32,15 @@ type jsonCSR struct {
 
 type jsonSignedCert struct{}
 
-func NewCert(account, intermediate, id string) *Certificate {
+func NewCert(account, intermediateChain, id string) *Certificate {
 	//only in memory at the moment
 	kp := keypair.NewKeyPair("memory")
 
 	var intermediateString string
-	if strings.Contains(intermediate, "spiffe://") {
-		intermediateString = intermediate
+	if strings.Contains(intermediateChain, "spiffe://") {
+		intermediateString = intermediateChain[9:len(intermediateChain)]
 	} else {
-		intermediateString = fmt.Sprintf("spiffe://%s", intermediate)
+		intermediateString = intermediateChain
 	}
 
 	newCert := &Certificate{
@@ -58,7 +60,6 @@ func (c *Certificate) base64EncodedCSR() string {
 	}
 
 	csr := c.KeyPair.CreateCSR(pkixName, []string{})
-	log.Println("got csr: ", csr.Raw)
 	log.Printf("ecoding certificate of length: %v\n", len(csr.Raw))
 	b64KP := base64.StdEncoding.EncodeToString(csr.Raw)
 
@@ -68,7 +69,7 @@ func (c *Certificate) base64EncodedCSR() string {
 func (c *Certificate) Json() []byte {
 	jsonStruct := jsonCSR{
 		CertName:   c.Id,
-		InterName: c.Intermediate,
+		InterChain: c.Intermediate,
 		Account: c.Account,
 		CSR:  c.base64EncodedCSR(),
 	}
