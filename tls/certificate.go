@@ -66,12 +66,13 @@ func (c *Certificate) base64EncodedCSR() string {
 	return b64KP
 }
 
-func (c *Certificate) Json() []byte {
+func (c *Certificate) CSRRequest(authtoken string) []byte {
 	jsonStruct := jsonCSR{
 		CertName:   c.Id,
 		InterChain: c.Intermediate,
 		Account: c.Account,
 		CSR:  c.base64EncodedCSR(),
+		Token: authtoken,
 	}
 
 	jsonBytes, err := json.Marshal(jsonStruct)
