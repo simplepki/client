@@ -54,7 +54,7 @@ func (c *Client) NewCertPair() error {
 
 	var returnedCert types.ReturnCertificateEvent
 	log.Println(string(body))
-	err = json.Unmarshal(body, returnedCert)
+	err = json.Unmarshal(body, &returnedCert)
 	if err != nil {
 		return err
 	}
@@ -83,27 +83,30 @@ func (c *Client) NewTLSConfig() (*stdtls.Config, error) {
 	}
 
 	certPool := x509.NewCertPool()
-	for _, cert := range c.TLSContext.KeyPair.GetCertificateChain {
+	for _, cert := range c.TLSContext.KeyPair.GetCertificateChain() {
 		certPool.AddCert(cert)
 	}
 
 
 	config := &stdtls.Config{
 		NextProtos:               []string{"http/1.1"},
-		MinVersion:               tls.VersionTLS12,
-		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+		MinVersion:               stdtls.VersionTLS12,
+		CurvePreferences:         []stdtls.CurveID{stdtls.CurveP521, stdtls.CurveP384, stdtls.CurveP256},
 		PreferServerCipherSuites: true,
 		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+			stdtls.TLS_AES_128_GCM_SHA256,
+			stdtls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			stdtls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			stdtls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			stdtls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			stdtls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+			stdtls.TLS_RSA_WITH_AES_256_CBC_SHA,
 		},
 		InsecureSkipVerify:       false,
 		RootCAs: certPool,
 		ClientCAs: certPool,
 		ClientAuth: stdtls.RequireAndVerifyClientCert,
-		Certificates: []tls.Certificate{c.TLSContext.KeyPair.TLSCertificate()},
+		Certificates: []stdtls.Certificate{c.TLSContext.KeyPair.TLSCertificate()},
 	}
 
 	return config, nil
