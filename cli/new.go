@@ -11,8 +11,8 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(certCmd)
-	certCmd.AddCommand(newCertCmd)
+	rootCmd.AddCommand(newCmd)
+	newCmd.AddCommand(newCertCmd)
 	newCertCmd.PersistentFlags().StringP("intermediate-chain", "c", "test-ca/test-inter", "path to request certificate from")
 	newCertCmd.PersistentFlags().StringP("id", "i", "test-client", "id of certificate to request")
 	newCertCmd.PersistentFlags().StringP("endpoint", "e", "", "url to send request to")
@@ -25,13 +25,13 @@ func init() {
 	viper.BindPFlag("token", newCertCmd.PersistentFlags().Lookup("token"))
 }
 
-var certCmd = &cobra.Command{
-	Use:   "cert",
-	Short: "new, renew, close out, and list certs",
+var newCmd = &cobra.Command{
+	Use:   "new",
+	Short: "create new certificate authorities or certificates",
 }
 
 var newCertCmd = &cobra.Command{
-	Use:   "new",
+	Use:   "certificate",
 	Short: "generate new certificate",
 	Run: func(cmd *cobra.Command, args []string) {
 		c := client.New()
@@ -39,8 +39,7 @@ var newCertCmd = &cobra.Command{
 		if err != nil {
 			log.Println(err.Error)
 		}
-		//log.Println("new cert cmd")
-		//cert := tls.NewCert(account, intermediate, id)
-		//log.Println("json:\n", string(cert.Json()))
+		
 	},
 }
+

@@ -11,28 +11,20 @@ import (
 	//"net/http"
 	"strings"
 
+	"github.com/simplepki/core/types"
 	"github.com/simplepki/core/keypair"
 )
 
-type Certificate struct {
+type TLSContext struct {
 	Id           string
 	Intermediate string
 	Account string
 	KeyPair      keypair.KeyPair
 }
 
-
-type jsonCSR struct {
-	Token string `json:"token"`
-	InterChain string `json:"intermediate_chain"`
-	CertName  string `json:"cert_name"`
-	Account   string `json:"account"`
-	CSR       string `json:"csr"`
-}
-
 type jsonSignedCert struct{}
 
-func NewCert(account, intermediateChain, id string) *Certificate {
+func NewKeyPair(account, intermediateChain, id string) *TLSContext {
 	//only in memory at the moment
 	kp := keypair.NewKeyPair("memory")
 
@@ -43,7 +35,7 @@ func NewCert(account, intermediateChain, id string) *Certificate {
 		intermediateString = intermediateChain
 	}
 
-	newCert := &Certificate{
+	newCert := &TLSContext{
 		Account: account,
 		Id:           id,
 		Intermediate: intermediateString,
@@ -53,7 +45,7 @@ func NewCert(account, intermediateChain, id string) *Certificate {
 	return newCert
 }
 
-func (c *Certificate) base64EncodedCSR() string {
+func (c *TLSContext) base64EncodedCSR() string {
 
 	pkixName := pkix.Name{
 		CommonName: fmt.Sprintf("%s/%s", c.Intermediate, c.Id),
@@ -66,8 +58,8 @@ func (c *Certificate) base64EncodedCSR() string {
 	return b64KP
 }
 
-func (c *Certificate) CSRRequest(authtoken string) []byte {
-	jsonStruct := jsonCSR{
+func (c *TLSContext) CSRRequest(authtoken string) []byte {
+	jsonStruct := types.SignCertificateEvent{
 		CertName:   c.Id,
 		InterChain: c.Intermediate,
 		Account: c.Account,

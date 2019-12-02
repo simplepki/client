@@ -2,6 +2,9 @@ package client
 
 import (
 	"bytes"
+	stdtls "crypto/tls"
+	"crypto/x509"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -10,6 +13,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/simplepki/client/config"
 	"github.com/simplepki/client/tls"
+	"github.com/simplepki/core/types"
 
 )
 
@@ -21,13 +25,15 @@ func New() Client {
 	log.Print("endpoint: ", viper.Get("endpoint"))
 	return Client{}
 }
-type Client struct {}
+type Client struct {
+	TLSContext *tls.TLSContext
+}
 
-func (c Client) NewCertPair() error {
-	cert := tls.NewCert(viper.GetString("account"), viper.GetString("chain"), viper.GetString("id"))
+func (c *Client) NewCertPair() error {
+	certContext := tls.NewKeyPair(viper.GetString("account"), viper.GetString("chain"), viper.GetString("id"))
 	//log.Println(string(cert.CSRRequest(viper.GetString("token"))))
 	log.Println("Client sending CSR to: ", viper.GetString("endpoint"))
-	certRequest, err := http.NewRequest("GET", viper.GetString("endpoint")+"/sign_csr", bytes.NewBuffer(cert.CSRRequest(viper.GetString("token"))))
+	certRequest, err := http.NewRequest("GET", viper.GetString("endpoint")+"/sign_csr", bytes.NewBuffer(certContext.CSRRequest(viper.GetString("token"))))
 	if err != nil {
 		return err
 	}
@@ -46,13 +52,62 @@ func (c Client) NewCertPair() error {
 		return nil
 	}
 
+	var returnedCert types.ReturnCertificateEvent
 	log.Println(string(body))
+	err = json.Unmarshal(body, returnedCert)
+	if err != nil {
+		return err
+	}
 
+	certContext.KeyPair.ImportCertificate([]byte(returnedCert.Cert))
+	chain := make([][]byte, len(returnedCert.Chain))
+	for idx, chainCert := range returnedCert.Chain {
+		chain[idx] = []byte(chainCert)
+	}
+
+	certContext.KeyPair.ImportCertificateChain(chain)
+
+	log.Printf("TLS Context: %#v\n", certContext)
+
+	c.TLSContext = certContext
+	
 	return nil
 }
 
-func NewTLSConfig(){}
+func (c *Client) NewTLSConfig() (*stdtls.Config, error) {
+	if c.TLSContext == nil {
+		err := c.NewCertPair()
+		if err != nil {
+			return nil, err
+		}
+	}
 
+	certPool := x509.NewCertPool()
+	for _, cert := range c.TLSContext.KeyPair.GetCertificateChain {
+		certPool.AddCert(cert)
+	}
+
+
+	config := &stdtls.Config{
+		NextProtos:               []string{"http/1.1"},
+		MinVersion:               tls.VersionTLS12,
+		CurvePreferences:         []tls.CurveID{tls.CurveP521, tls.CurveP384, tls.CurveP256},
+		PreferServerCipherSuites: true,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+			tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		},
+		InsecureSkipVerify:       false,
+		RootCAs: certPool,
+		ClientCAs: certPool,
+		ClientAuth: stdtls.RequireAndVerifyClientCert,
+		Certificates: []tls.Certificate{c.TLSContext.KeyPair.TLSCertificate()},
+	}
+
+	return config, nil
+}
 
 func newHTTPClient() *http.Client {
 	c := &http.Client{
