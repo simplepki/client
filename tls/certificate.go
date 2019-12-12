@@ -45,25 +45,25 @@ func NewKeyPair(account, intermediateChain, id string) *TLSContext {
 	return newCert
 }
 
-func (c *TLSContext) base64EncodedCSR() string {
+func (c *TLSContext) base64EncodedCSR(altNames []string) string {
 
 	pkixName := pkix.Name{
 		CommonName: fmt.Sprintf("%s/%s", c.Intermediate, c.Id),
 	}
 
-	csr := c.KeyPair.CreateCSR(pkixName, []string{})
+	csr := c.KeyPair.CreateCSR(pkixName, altNames)
 	log.Printf("ecoding certificate of length: %v\n", len(csr.Raw))
 	b64KP := base64.StdEncoding.EncodeToString(csr.Raw)
 
 	return b64KP
 }
 
-func (c *TLSContext) CSRRequest(authtoken string) []byte {
+func (c *TLSContext) CSRRequest(authtoken string, altNames []string) []byte {
 	jsonStruct := types.SignCertificateEvent{
 		CertName:   c.Id,
 		InterChain: c.Intermediate,
 		Account: c.Account,
-		CSR:  c.base64EncodedCSR(),
+		CSR:  c.base64EncodedCSR(altNames),
 		Token: authtoken,
 	}
 
