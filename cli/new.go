@@ -18,11 +18,13 @@ func init() {
 	newCertCmd.PersistentFlags().StringP("endpoint", "e", "", "url to send request to")
 	newCertCmd.PersistentFlags().StringP("account", "a", "test", "account to add certificate to")
 	newCertCmd.PersistentFlags().StringP("token", "t", "", "token for authn/z to simple pki service")
+	newCertCmd.PersistentFlags().StringArrayP("subj_alt_names", "", []string{"localhost", "127.0.0.1"}, "subject alternative names (SANs) for cert")
 	viper.BindPFlag("account", newCertCmd.PersistentFlags().Lookup("account"))
 	viper.BindPFlag("id", newCertCmd.PersistentFlags().Lookup("id"))
 	viper.BindPFlag("chain", newCertCmd.PersistentFlags().Lookup("intermediate-chain"))
 	viper.BindPFlag("endpoint", newCertCmd.PersistentFlags().Lookup("endpoint"))
 	viper.BindPFlag("token", newCertCmd.PersistentFlags().Lookup("token"))
+	viper.BindPFlag("subj_alt_names", newCertCmd.PersistentFlags().Lookup("subj_alt_names"))
 }
 
 var newCmd = &cobra.Command{

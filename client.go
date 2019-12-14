@@ -33,7 +33,7 @@ func (c *Client) NewCertPair() error {
 	certContext := tls.NewKeyPair(viper.GetString("account"), viper.GetString("chain"), viper.GetString("id"))
 	//log.Println(string(cert.CSRRequest(viper.GetString("token"))))
 	log.Println("Client sending CSR to: ", viper.GetString("endpoint"))
-	certRequest, err := http.NewRequest("GET", viper.GetString("endpoint")+"/sign_csr", bytes.NewBuffer(certContext.CSRRequest(viper.GetString("token"))))
+	certRequest, err := http.NewRequest("GET", viper.GetString("endpoint")+"/sign_csr", bytes.NewBuffer(certContext.CSRRequest(viper.GetString("token"), viper.GetStringSlice("subj_alt_names"))))
 	if err != nil {
 		return err
 	}

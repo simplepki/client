@@ -17,6 +17,7 @@ func init() {
 	viper.BindEnv("chain")
 	viper.BindEnv("id")	
 	viper.BindEnv("token")
+	viper.BindEnv("subj_alt_names")
 }
 
 func Load() {
