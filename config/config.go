@@ -8,16 +8,30 @@ import (
 func init() {
 	viper.SetConfigName("simplepki")
 	viper.AddConfigPath("/etc/simplepki.yaml")
+	viper.AddConfigPath("/etc/simplepki.yml")
 	viper.AddConfigPath("$HOME/.simplepki")
 	viper.AddConfigPath(".")
 	
 	viper.SetEnvPrefix("simplepki")
-	viper.BindEnv("endpoint")
+	// global
 	viper.BindEnv("account")
+	viper.BindEnv("endpoint")
+	viper.BindEnv("token")
+
+	// ca
+	viper.BindEnv("certificate_authority")
+	// inter
+	viper.BindEnv("intermediate_certificate_authority")
+
+	// cert
 	viper.BindEnv("chain")
 	viper.BindEnv("id")	
-	viper.BindEnv("token")
 	viper.BindEnv("subj_alt_names")
+	
+	// tokens
+	viper.BindEnv("token_generator")
+	viper.BindEnv("token_prefix")
+	viper.BindEnv("token_ttl")
 }
 
 func Load() {
@@ -27,5 +41,7 @@ func Load() {
 		} else {
 			log.Printf("Error reading config: %s\n", err.Error())
 		}
+	} else {
+		log.Fatal(err.Error())
 	}
 }

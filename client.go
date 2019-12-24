@@ -5,11 +5,16 @@ import (
 	stdtls "crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/spf13/viper"
 	"github.com/simplepki/client/config"
 	"github.com/simplepki/client/tls"
@@ -23,17 +28,140 @@ func New() Client {
 	log.Print("id: ", viper.Get("id"))
 	log.Print("chain: ", viper.Get("chain"))
 	log.Print("endpoint: ", viper.Get("endpoint"))
+	log.Print("ca: ", viper.Get("certificate_authority"))
+	log.Print("inter: ", viper.Get("intermediate_certificate_authority"))
+	log.Print("token: ", viper.Get("token"))
 	return Client{}
 }
 type Client struct {
 	TLSContext *tls.TLSContext
 }
 
+
+func (c *Client) GetToken() (string, error) {
+	log.Println("NOTICE: this uses loaded AWS credentials; user must have requisite IAM priviledges")
+
+	tokenEvent := types.CreateCredentialsEvent{
+		Account: viper.GetString("account"),
+		Type: "local",
+		Prefix: viper.GetString("token_prefix"),
+		TTL: viper.GetInt64("token_ttl"),
+	}
+
+	jsonEvent, err := json.Marshal(tokenEvent)
+	if err != nil {
+		return "", err
+	}
+
+	lambdaInput := &lambda.InvokeInput{
+		FunctionName: aws.String(viper.GetString("token_generator")),
+		Payload: jsonEvent,
+	}
+
+	svc := lambda.New(session.New())
+	lambdaOutput, err := svc.Invoke(lambdaInput)
+	if err != nil {
+		return "", err
+	}
+
+	return string(lambdaOutput.Payload), nil
+}
+
+
+func(c *Client) NewCertificateAuthority() error {
+	log.Printf("Createing new CA with name %s\n", viper.GetString("certificate_authority"))
+	caEvent := types.CreateCertificateAuthorityEvent{
+		Token: viper.GetString("token"),
+		CAName: viper.GetString("certificate_authority"),
+		Account: viper.GetString("account"),
+	}
+	log.Printf("Client sending CA create event to endpoint: %s\n", viper.Get("endpoint"))
+	jsonBytes, err := json.Marshal(caEvent)
+	if err != nil {
+		return err
+	}
+
+	caRequest, err := http.NewRequest("POST", viper.GetString("endpoint")+"/create_ca", bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		return nil
+	}
+
+	caRequest.Header.Set("Content-Type", "application/json")
+	httpClient := newHTTPClient()
+	log.Println("sending CA request")
+	response, err := httpClient.Do(caRequest)
+	if err != nil {
+		return err
+	}
+
+	if response.StatusCode != 200 {
+		return errors.New(fmt.Sprintf("Recieved code %v when creating CA", response.StatusCode))
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println("Client response error: ", err.Error())
+		return nil
+	}
+
+	err = errorHandler(body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) NewIntermediateCertificateAuthority() error {
+	log.Printf("Createing new Intermediate CA with name %s\n", viper.GetString("certificate_authority"))
+	caEvent := types.CreateIntermediateAuthorityEvent{
+		Token: viper.GetString("token"),
+		CAName: viper.GetString("certificate_authority"),
+		InterName: viper.GetString("intermediate_certificate_authority"),
+		Account: viper.GetString("account"),
+	}
+	log.Printf("Client sending Intermediate CA create event to endpoint: %s\n", viper.Get("endpoint"))
+	jsonBytes, err := json.Marshal(caEvent)
+	if err != nil {
+		return err
+	}
+
+	caRequest, err := http.NewRequest("POST", viper.GetString("endpoint")+"/create_intermediate", bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		return nil
+	}
+
+	caRequest.Header.Set("Content-Type", "application/json")
+	httpClient := newHTTPClient()
+	log.Println("sending CA request")
+	response, err := httpClient.Do(caRequest)
+	if err != nil {
+		return err
+	}
+
+	if response.StatusCode != 200 {
+		return errors.New(fmt.Sprintf("Recieved code %v when creating CA", response.StatusCode))
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println("Client response error: ", err.Error())
+		return nil
+	}
+
+	err = errorHandler(body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client) NewCertPair() error {
 	certContext := tls.NewKeyPair(viper.GetString("account"), viper.GetString("chain"), viper.GetString("id"))
 	//log.Println(string(cert.CSRRequest(viper.GetString("token"))))
 	log.Println("Client sending CSR to: ", viper.GetString("endpoint"))
-	certRequest, err := http.NewRequest("GET", viper.GetString("endpoint")+"/sign_csr", bytes.NewBuffer(certContext.CSRRequest(viper.GetString("token"), viper.GetStringSlice("subj_alt_names"))))
+	certRequest, err := http.NewRequest("POST", viper.GetString("endpoint")+"/sign_csr", bytes.NewBuffer(certContext.CSRRequest(viper.GetString("token"), viper.GetStringSlice("subj_alt_names"))))
 	if err != nil {
 		return err
 	}
@@ -118,5 +246,15 @@ func newHTTPClient() *http.Client {
 	}
 
 	return c
+}
+
+func errorHandler(lambdaBody []byte) error {
+	var lerror types.LambdaError
+	err := json.Unmarshal(lambdaBody, &lerror)
+	if err != nil {
+		return err
+	}
+
+	return errors.New(lerror.Message)
 }
 
