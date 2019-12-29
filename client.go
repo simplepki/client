@@ -45,7 +45,7 @@ func (c *Client) GetToken() (string, error) {
 		Account: viper.GetString("account"),
 		Type: "local",
 		Prefix: viper.GetString("token_prefix"),
-		TTL: viper.GetInt64("token_ttl"),
+		TTL: viper.GetInt64("token_ttl") * 60 * 60,
 	}
 
 	jsonEvent, err := json.Marshal(tokenEvent)

@@ -76,3 +76,8 @@ The global variables are needed for all client operations.
   ##### SIMPLEPKI_TOKEN_TTL
 
     Time-to-live in hours for the generated token.
+
+  ##### AWS_REGION
+
+    As of now, token generation is done by directly running a Lambda. This allows for IAM permissions to be used and greatly simplifies this piece.
+    
