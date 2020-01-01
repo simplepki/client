@@ -7,8 +7,7 @@ import (
 
 func init() {
 	viper.SetConfigName("simplepki")
-	viper.AddConfigPath("/etc/simplepki.yaml")
-	viper.AddConfigPath("/etc/simplepki.yml")
+	viper.AddConfigPath("/etc/")
 	viper.AddConfigPath("$HOME/.simplepki")
 	viper.AddConfigPath(".")
 	

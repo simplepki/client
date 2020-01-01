@@ -80,4 +80,38 @@ The global variables are needed for all client operations.
   ##### AWS_REGION
 
     As of now, token generation is done by directly running a Lambda. This allows for IAM permissions to be used and greatly simplifies this piece.
-    
+
+### Config File
+
+The client will look for a configuration file in the paths `/etc/simplepki.*`, `$HOME/.simplepki`, `~/simplepki.*` and can be written in JSON, YAML, INI, or as an ENV file as described by [viper](https://github.com/spf13/viper).
+
+All config file variables are identical to those above but without the `SIMPLEPKI_` prefix.
+
+#### [Config File Global Vars](#global-variables)
+
+  ```yaml
+  account: "account name as a string value"
+  endpoint: "endpoint url as a string value"
+  token: "token as a string value"
+  ```
+
+#### [Config File Certificate Authority Creation Variables](#certificate-authority-creation-variables)
+
+  ```yaml
+  certificate_authority: "name certificate authority to create as a string"
+  ```
+
+#### [Config File Intermediate Certificate Authority Creation Variables](#intermediate-certificate-authority-creation-variables)
+
+  ```yaml
+  certificate_authority: "name of certificate authority as a string"
+  intermediate_certificate_authority: "name of intermediate authority to create as a string"
+  ```
+
+##### [Config File Certificate Signing/Creation Variables](#certificate-signing/creation-variables)
+  
+  ```yaml
+  chain: "full path (rootCA/interCA/interCA...) of the chain to sign the cert with as a string"
+  id: "id of service/client generating the certificate as a string"
+  subj_alt_names: "a space separated list of SANs values as a string" # "localhost 127.0.0.1 example.com"
+  ```

@@ -22,7 +22,7 @@ import (
 
 )
 
-func New() Client {
+func New() *Client {
 	config.Load()
 	log.Print("account: ", viper.Get("account"))
 	log.Print("id: ", viper.Get("id"))
@@ -31,12 +31,28 @@ func New() Client {
 	log.Print("ca: ", viper.Get("certificate_authority"))
 	log.Print("inter: ", viper.Get("intermediate_certificate_authority"))
 	log.Print("token: ", viper.Get("token"))
-	return Client{}
+	return &Client{}
 }
+
+func NewWithToken() (*Client, error) {
+	c := New()
+	token, err := c.GetToken()
+	if err != nil {
+		return nil, err
+	}
+
+	c.SetToken(token)
+
+	return c, nil
+}
+
 type Client struct {
 	TLSContext *tls.TLSContext
 }
 
+func (c *Client) SetToken(token string) {
+	viper.Set("token", token)
+}
 
 func (c *Client) GetToken() (string, error) {
 	log.Println("NOTICE: this uses loaded AWS credentials; user must have requisite IAM priviledges")
