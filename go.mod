@@ -3,7 +3,7 @@ module github.com/simplepki/client
 go 1.13
 
 require (
-	github.com/aws/aws-sdk-go v1.26.8
+	github.com/aws/aws-sdk-go v1.33.0
 	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/simplepki/core v0.0.3
 	github.com/spf13/afero v1.2.2 // indirect
